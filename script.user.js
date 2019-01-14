@@ -4,6 +4,7 @@
 // @version 0.1
 // @author Syleront
 // @include *://smotretanime.ru/*
+// @connect smotretanime.ru
 // @grant GM_xmlhttpRequest
 // @run-at document-start
 // @copyright 2018, Syleront
