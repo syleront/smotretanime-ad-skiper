@@ -8,6 +8,9 @@
 // @grant GM_xmlhttpRequest
 // @run-at document-start
 // @copyright 2018, Syleront
+// @homepage https://github.com/syleront/smotretanime-ad-skiper
+// @updateURL https://github.com/syleront/smotretanime-ad-skiper/raw/master/script.user.js
+// @downloadURL https://github.com/syleront/smotretanime-ad-skiper/raw/master/script.user.js
 
 // @license MIT
 // ==/UserScript==
