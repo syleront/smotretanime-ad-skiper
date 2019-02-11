@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.1
+// @version 0.1.1
 // @author Syleront
 // @include *://smotretanime.ru/*
 // @connect smotretanime.ru
@@ -94,9 +94,10 @@
     overlayDiv.style.opacity = "0.8";
 
     let textDiv = document.createElement("div");
-    overlayDiv.style.textAlign = "center";
-    overlayDiv.style.marginTop = "50px";
-    overlayDiv.style.fontSize = "25px";
+    textDiv.style.textAlign = "center";
+    textDiv.style.marginTop = "50px";
+    textDiv.style.fontSize = "25px";
+    textDiv.style.userSelect = "none";
     textDiv.innerHTML = "Тут реклама братан, ща уберем подожди";
 
     overlayDiv.appendChild(textDiv);
@@ -136,10 +137,10 @@
   function setCookie(name, value, options) {
     options = options || {};
 
-    var expires = options.expires;
+    let expires = options.expires;
 
     if (typeof expires == "number" && expires) {
-      var d = new Date();
+      let d = new Date();
       d.setTime(d.getTime() + expires * 1000);
       expires = options.expires = d;
     }
@@ -149,11 +150,11 @@
 
     value = encodeURIComponent(value);
 
-    var updatedCookie = name + "=" + value;
+    let updatedCookie = name + "=" + value;
 
-    for (var propName in options) {
+    for (let propName in options) {
       updatedCookie += "; " + propName;
-      var propValue = options[propName];
+      let propValue = options[propName];
       if (propValue !== true) {
         updatedCookie += "=" + propValue;
       }
