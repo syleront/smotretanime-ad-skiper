@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.1.1
+// @version 0.1.2
 // @author Syleront
-// @include *://smotretanime.ru/*
+// @include /https?:\/\/smotretanime\.ru\/.+/embed/
 // @connect smotretanime.ru
 // @grant GM_xmlhttpRequest
 // @run-at document-start
@@ -18,6 +18,7 @@
 (function updateCookie(is_initial) {
   const check_interval = 60; // seconds
   const wait_timeout = 12; // seconds
+  const overlay_text = "Тут реклама братан, ща уберем подожди";
 
   let url = checkAndFixUrl(document.location.href);
   if (!url) {
@@ -98,7 +99,7 @@
     textDiv.style.marginTop = "50px";
     textDiv.style.fontSize = "25px";
     textDiv.style.userSelect = "none";
-    textDiv.innerHTML = "Тут реклама братан, ща уберем подожди";
+    textDiv.innerHTML = overlay_text;
 
     overlayDiv.appendChild(textDiv);
     document.body.insertAdjacentElement("afterbegin", overlayDiv);
@@ -107,11 +108,11 @@
       let timer = wait_timeout;
       (function tick() {
         if (timer > 0) {
-          textDiv.innerHTML = "Тут реклама братан, ща уберем подожди [" + timer + "]";
+          textDiv.innerHTML = `${overlay_text} [${timer}]`;
           timer -= 1;
           setTimeout(tick, 1000);
         } else {
-          textDiv.innerHTML = "Тут реклама братан, ща уберем подожди...";
+          textDiv.innerHTML = `${overlay_text}...`;
         }
       })();
     }
