@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.1.2
+// @version 0.2.0
 // @author Syleront
 // @include /https?:\/\/smotretanime\.ru\/.+/embed/
 // @connect smotretanime.ru
@@ -15,76 +15,61 @@
 // @license MIT
 // ==/UserScript==
 
-(function updateCookie(is_initial) {
-  const check_interval = 60; // seconds
-  const wait_timeout = 12; // seconds
+(() => {
+  const wait_timeout = 15; // seconds
   const overlay_text = "Тут реклама братан, ща уберем подожди";
+  const TempData = {};
 
-  let url = checkAndFixUrl(document.location.href);
-  if (!url) {
-    throw "url is bad";
-  } else {
-    GM_xmlhttpRequest({
-      method: "GET",
-      url: url,
-      onload: (response) => {
-        let code = response.responseText.match(/data:text\/javascript;base64,(.+?)"/);
-        let is_skip_button = document.querySelector(".skip-button") !== null;
-        if (code) {
-          console.log("[ad-skiper] js code got");
-          if (is_initial) showWaitOverlay(true);
-          let decoded = atob(code[1]);
-          let activation_code = decoded.match(/activateCodeTmp\s=\s"([A-z0-9]+)"/i);
-          if (activation_code) {
-            console.log("[ad-skiper] act code got");
-            let url = "https://smotretanime.ru/translations/embedActivation?code=" + activation_code[1];
-            console.log("[ad-skiper] wait " + wait_timeout + " sec...");
-            setTimeout(() => {
-              (function get(url) {
-                console.log("[ad-skiper] get response");
-                GM_xmlhttpRequest({
-                  method: "GET",
-                  url: url,
-                  onload: (response) => {
-                    let res = JSON.parse(response.responseText);
-                    if (res.error) {
-                      console.log("[ad-skiper] error, retry...");
-                      setTimeout(() => {
-                        get(url);
-                      }, 1000);
-                    } else {
-                      console.log("[ad-skiper] set cookie");
-                      setCookie("watchedPromoVideo", res.cookieValue);
-                      if (is_initial) {
-                        setTimeout(() => {
-                          window.location.reload();
-                        }, 500);
-                      } else {
-                        setTimeout(() => {
-                          updateCookie(false);
-                        }, check_interval * 1000);
-                      }
-                    }
-                  }
-                });
-              })(url);
-            }, wait_timeout * 1000);
-          }
-        } else if (is_skip_button) {
-          console.log("[ad-skiper] finded hidden ad, reloading");
-          showWaitOverlay(false);
-          window.location.reload();
-        } else {
-          console.log("[ad-skiper] code is undefined, set timer...");
-          setTimeout(() => {
-            updateCookie(false);
-          }, check_interval * 1000);
-        }
-      }
+  let listener = new DomChangesListener();
+  listener.on("activation_key", (key) => {
+    console.log("[ad-skiper] ad-key matched");
+    showWaitOverlay(false);
+
+    let sas_key = localStorage.getItem("sas-key");
+    if (sas_key) {
+      key = sas_key;
+    } else {
+      localStorage.setItem("sas-key", key);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      getAndSetPromoCode(key);
     });
+  });
+
+  function getAndSetPromoCode(key) {
+    let url = "https://smotretanime.ru/translations/embedActivation?code=" + key;
+    (function get(url, is_reconnect) {
+      console.log("[ad-skiper] get response");
+      request(url, {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "x-requested-with": "XMLHttpRequest"
+      }).then((body) => {
+        let res = JSON.parse(body);
+        if (res === null || res.error && is_reconnect) {
+          console.log("[ad-skiper] ad-key is wrong, removing it and try again...");
+          localStorage.removeItem("sas-key");
+          window.location.reload();
+        } else if (res.error) {
+          console.log(`[ad-skiper] error, retry after ${wait_timeout} sec...`);
+          showWaitOverlay(true);
+          setTimeout(() => {
+            get(url, true);
+          }, wait_timeout * 1000);
+        } else {
+          console.log("[ad-skiper] set cookie");
+          setCookie("watchedPromoVideo", res.cookieValue);
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      });
+    })(url);
   }
 
   function showWaitOverlay(is_main) {
+    if (TempData.overlayDiv) TempData.overlayDiv.remove();
+
     let overlayDiv = document.createElement("div");
     overlayDiv.style.position = "fixed";
     overlayDiv.style.display = "block";
@@ -104,6 +89,8 @@
     overlayDiv.appendChild(textDiv);
     document.body.insertAdjacentElement("afterbegin", overlayDiv);
 
+    TempData.overlayDiv = overlayDiv;
+
     if (is_main) {
       let timer = wait_timeout;
       (function tick() {
@@ -118,21 +105,63 @@
     }
   }
 
-  function checkAndFixUrl(url) {
-    if (/smotretanime\.ru/.test(url)) {
-      if (/\/embed/.test(url)) {
-        return url;
-      } else {
-        let matched = url.match(/[0-9]+$/);
-        if (matched) {
-          return "https://smotretanime.ru/translations/embed/" + matched[0];
-        } else {
-          return null;
+  function DomChangesListener() {
+    let events = [];
+
+    this.emit = (name, data) => {
+      events.forEach((e) => {
+        if (e.name == name) {
+          e._cb(data);
         }
-      }
-    } else {
-      return null;
+      });
+    };
+
+    this.on = (name, _cb) => {
+      events.push({ name, _cb });
+    };
+
+    new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.tagName === "SCRIPT") {
+            let matched = node.src.match(/data:text\/javascript;base64,(.+?)$/i);
+            if (matched) {
+              let key = atob(matched[1]).match(/activateCodeTmp\s=\s"([A-z0-9]+)"/i);
+              if (key) {
+                this.emit("activation_key", key[1]);
+              }
+            }
+          }
+        });
+      });
+    }).observe(document, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function request(url, headers) {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+
+    if (headers) {
+      Object.entries(headers).forEach((header) => {
+        xhr.setRequestHeader(header[0], header[1]);
+      });
     }
+
+    xhr.send();
+
+    return new Promise((resolve, reject) => {
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState != 4) return;
+        if (xhr.status !== 200) {
+          reject(xhr);
+        } else {
+          resolve(xhr.responseText);
+        }
+      };
+    });
   }
 
   function setCookie(name, value, options) {
@@ -163,4 +192,4 @@
 
     document.cookie = updatedCookie;
   }
-})(true);
+})();
