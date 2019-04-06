@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.3.0
+// @version 0.3.1
 // @author Syleront
 // @include /https?:\/\/smotretanime\.ru\/.+/embed/
 // @connect smotretanime.ru
@@ -36,10 +36,6 @@
       getAndSetPromoCode(key);
     });
   });
-
-  unsafeWindow.sendCodeToSas = (code) => {
-    listener.emit("activation_key", encodeURIComponent(code));
-  };
 
   unsafeWindow.addEventListener("load", () => {
     unsafeWindow.playerGlobal.concatenate.notActivatedAlert = () => {
@@ -133,13 +129,12 @@
     new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.tagName === "SCRIPT") {
+          if (node.tagName === "SCRIPT" && node.id) {
             let matched = node.src.match(/data:text\/javascript;base64,(.+?)$/i);
             if (matched) {
-              let code = atob(matched[1])
-                .replace(/var\s?activateCode\s?=\s?window\.activateCodeTmp;?/, "var activateCode = window.activateCodeTmp; window.sendCodeToSas(window.activateCodeTmp);")
-                .replace(/alert\(.+?\);?/g, "");
-              node.src = `data:text/javascript;base64,${btoa(code)}`;
+              let code = atob(matched[1]).replace(/(delete window\.activateCodeTmp;).*/, "$1 return activateCode;");
+              let key = eval(code);
+              this.emit("activation_key", encodeURIComponent(key));
             }
           }
         });
