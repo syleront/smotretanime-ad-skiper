@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.2.0
+// @version 0.3.0
 // @author Syleront
 // @include /https?:\/\/smotretanime\.ru\/.+/embed/
 // @connect smotretanime.ru
@@ -20,9 +20,9 @@
   const overlay_text = "Тут реклама братан, ща уберем подожди";
   const TempData = {};
 
-  let listener = new DomChangesListener();
+  let listener = new EventListener();
   listener.on("activation_key", (key) => {
-    console.log("[ad-skiper] ad-key matched");
+    console.log("[ad-skiper] ad-key received");
     showWaitOverlay(false);
 
     let sas_key = localStorage.getItem("sas-key");
@@ -37,10 +37,20 @@
     });
   });
 
+  unsafeWindow.sendCodeToSas = (code) => {
+    listener.emit("activation_key", encodeURIComponent(code));
+  };
+
+  unsafeWindow.addEventListener("load", () => {
+    unsafeWindow.playerGlobal.concatenate.notActivatedAlert = () => {
+      console.log("[ad-skiper] activation alert bypassed");
+    };
+  });
+
   function getAndSetPromoCode(key) {
-    let url = "https://smotretanime.ru/translations/embedActivation?code=" + key;
+    let url = `https://smotretanime.ru/translations/embedActivation?code=${key}`;
     (function get(url, is_reconnect) {
-      console.log("[ad-skiper] get response");
+      console.log("[ad-skiper] getting response...");
       request(url, {
         "Accept": "application/json, text/javascript, */*; q=0.01",
         "x-requested-with": "XMLHttpRequest"
@@ -105,7 +115,7 @@
     }
   }
 
-  function DomChangesListener() {
+  function EventListener() {
     let events = [];
 
     this.emit = (name, data) => {
@@ -126,10 +136,10 @@
           if (node.tagName === "SCRIPT") {
             let matched = node.src.match(/data:text\/javascript;base64,(.+?)$/i);
             if (matched) {
-              let key = atob(matched[1]).match(/activateCodeTmp\s=\s"([A-z0-9]+)"/i);
-              if (key) {
-                this.emit("activation_key", key[1]);
-              }
+              let code = atob(matched[1])
+                .replace(/var\s?activateCode\s?=\s?window\.activateCodeTmp;?/, "var activateCode = window.activateCodeTmp; window.sendCodeToSas(window.activateCodeTmp);")
+                .replace(/alert\(.+?\);?/g, "");
+              node.src = `data:text/javascript;base64,${btoa(code)}`;
             }
           }
         });
