@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name SAS
 // @description Smotretanime-Ad-Skiper
-// @version 0.3.1
+// @version 0.3.2
 // @author Syleront
 // @include /https?:\/\/smotretanime\.ru\/.+/embed/
 // @connect smotretanime.ru
@@ -27,14 +27,20 @@
 
     let sas_key = localStorage.getItem("sas-key");
     if (sas_key) {
+      console.log("[ad-skiper] using key from cache");
       key = sas_key;
     } else {
+      console.log("[ad-skiper] cache is empty, using new key");
       localStorage.setItem("sas-key", key);
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       getAndSetPromoCode(key);
     });
+  });
+
+  window.addEventListener("sasKey", (evt) => {
+      listener.emit("activation_key", encodeURIComponent(evt.detail));
   });
 
   unsafeWindow.addEventListener("load", () => {
@@ -132,9 +138,10 @@
           if (node.tagName === "SCRIPT" && node.id) {
             let matched = node.src.match(/data:text\/javascript;base64,(.+?)$/i);
             if (matched) {
-              let code = atob(matched[1]).replace(/(delete window\.activateCodeTmp;).*/, "$1 return activateCode;");
-              let key = eval(code);
-              this.emit("activation_key", encodeURIComponent(key));
+              let code = atob(matched[1]).replace(/(delete window\.activateCodeTmp;).*/, "$1 var event = new CustomEvent('sasKey', { 'detail': activateCode }); window.dispatchEvent(event); return;");
+              let script = document.createElement("script");
+              script.src = `data:text/javascript;base64,${btoa(code)}`;
+              document.body.appendChild(script);
             }
           }
         });
