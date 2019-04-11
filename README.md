@@ -15,3 +15,9 @@
 **Q**: Как установить?
 <br>
 **A**: Устанавливаете расширение Tampermonkey для своего браузера, после чего переходите по ссылке: https://github.com/syleront/smotretanime-ad-skiper/raw/master/script.user.js, и нажимаете кнопку установить.
+<br>
+<br>
+**Q**: У меня не работает в Firefox, что делать?
+<br>
+**A**: Для текущей на данный момент версии (0.4.0), следует отключить запрет автовоспроизведения звука, либо добавить smotretanime.ru в исключения<br><br>
+![alt text](https://user-images.githubusercontent.com/17946851/55918577-332d3e00-5bfc-11e9-8707-10d1c9202fa5.png)
