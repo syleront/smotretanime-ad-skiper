@@ -7,7 +7,7 @@
 ## FAQ:
 **Q**: Как установить?
 <br>
-**A**: Устанавливаете расширение Tampermonkey для своего браузера, после чего переходите по ссылке: https://openuserjs.org/install/Syleront/SAS.user.js, и нажимаете кнопку установить.
+**A**: Устанавливаете расширение Tampermonkey для своего браузера, после чего переходите по ссылке: https://github.com/syleront/smotretanime-ad-skiper/raw/master/script.user.js, и нажимаете кнопку установить.
 <br>
 <br>
 **Q**: У меня не работает в Firefox, что делать?
